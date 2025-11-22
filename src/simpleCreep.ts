@@ -38,6 +38,33 @@ export class SimpleCreep {
     this.creep.memory.role = role;
   }
 
+  /**
+   * Store a value in the creep's memory under a custom key.
+   * @param key Memory key to store under.
+   * @param value Arbitrary serializable value to remember.
+   */
+  remember<T>(key: string, value: T): void {
+    (this.creep.memory as any)[key] = value as any;
+  }
+
+  /**
+   * Retrieve a remembered value from the creep's memory.
+   * @param key Memory key to read.
+   * @returns Stored value or `undefined` if missing.
+   */
+  recall<T>(key: string): T | undefined {
+    return (this.creep.memory as any)[key] as T | undefined;
+  }
+
+  /**
+   * Log a status message prefixed with creep name and role for easy debugging.
+   * @param message Message to print.
+   */
+  logStatus(message: string): void {
+    const roleLabel = this.getRole() ?? "unknown";
+    console.log(`[${this.creep.name}|${roleLabel}] ${message}`);
+  }
+
   // Chapter 1: Harvesting & Energy Management
 
   /**
@@ -240,6 +267,151 @@ export class SimpleCreep {
     const res = (this.creep.withdraw as any)(target as any, RESOURCE_ENERGY);
     if (res === OK) return ActionStatus.WITHDRAWING;
     return ActionStatus.ERROR;
+  }
+
+  // Chapter 5: Resource Logistics and Storage
+
+  /**
+   * Find the best nearby non-source energy target (dropped energy, then containers, then storage).
+   * @returns Dropped resource, container, storage, or `null` when nothing is available.
+   */
+  findEnergyDropOrContainer(): Resource | StructureContainer | StructureStorage | null {
+    const room = this.creep.room;
+    if (!room) return null;
+
+    const spawn = room.find(FIND_MY_SPAWNS)[0];
+
+    const dropped = room.find(FIND_DROPPED_RESOURCES, {
+      filter: r => r.resourceType === RESOURCE_ENERGY,
+    }) as Resource[];
+    if (dropped.length > 0) {
+      const target = spawn
+        ? spawn.pos.findClosestByRange(dropped)
+        : this.creep.pos.findClosestByRange(dropped);
+      if (target) return target;
+    }
+
+    const containers = room.find(FIND_STRUCTURES, {
+      filter: s =>
+        s.structureType === STRUCTURE_CONTAINER &&
+        (s.store?.getUsedCapacity(RESOURCE_ENERGY) ?? 0) > 0,
+    }) as StructureContainer[];
+    if (containers.length > 0) {
+      const target = this.creep.pos.findClosestByRange(containers) as StructureContainer | null;
+      if (target) return target;
+    }
+
+    const storages = room.find(FIND_STRUCTURES, {
+      filter: s => s.structureType === STRUCTURE_STORAGE && (s.store?.getUsedCapacity(RESOURCE_ENERGY) ?? 0) > 0,
+    }) as StructureStorage[];
+    if (storages.length > 0) {
+      const target = this.creep.pos.findClosestByRange(storages) as StructureStorage | null;
+      if (target) return target;
+    }
+
+    return null;
+  }
+
+  /**
+   * High-level helper to pick up dropped energy or withdraw from a container/storage.
+   * @returns Status reflecting action progress, or `FULL`/`NO_TARGET` when blocked.
+   */
+  pickupOrWithdrawEnergy(): ActionStatus {
+    if (this.full()) return ActionStatus.FULL;
+
+    const target = this.findEnergyDropOrContainer();
+    if (!target) return ActionStatus.NO_TARGET;
+
+    if ((target as Resource).resourceType === RESOURCE_ENERGY) {
+      const resTarget = target as Resource;
+      if (!this.isNear(resTarget, 1)) return this.moveTo(resTarget);
+      const res = this.creep.pickup(resTarget);
+      if (res === OK) return ActionStatus.PICKING_UP;
+      return ActionStatus.ERROR;
+    }
+
+    if (!this.isNear(target, 1)) {
+      const moveStatus = this.moveTo(target);
+      if (moveStatus === ActionStatus.NO_PATH || moveStatus === ActionStatus.ERROR) return moveStatus;
+      return ActionStatus.MOVING;
+    }
+
+    const withdrawResult = this.withdraw(target as any);
+    if (withdrawResult === ActionStatus.WITHDRAWING) return ActionStatus.WITHDRAWING;
+    return withdrawResult;
+  }
+
+  /**
+   * Deliver energy to spawn and extensions, preferring whichever is closer.
+   * @returns Transfer status, `EMPTY` when out of energy, or `NO_TARGET` when no fill targets exist.
+   */
+  fillExtensionsAndSpawn(): ActionStatus {
+    if (this.empty()) return ActionStatus.EMPTY;
+
+    const room = this.creep.room;
+    if (!room) return ActionStatus.NO_TARGET;
+
+    const structures = room.find(FIND_MY_STRUCTURES, {
+      filter: s =>
+        (s.structureType === STRUCTURE_SPAWN || s.structureType === STRUCTURE_EXTENSION) &&
+        (s.store?.getFreeCapacity(RESOURCE_ENERGY) ?? 0) > 0,
+    }) as (StructureSpawn | StructureExtension)[];
+
+    if (structures.length === 0) return ActionStatus.NO_TARGET;
+
+    const target = this.creep.pos.findClosestByRange(structures) as StructureSpawn | StructureExtension | null;
+    if (!target) return ActionStatus.NO_TARGET;
+
+    return this.transferEnergyTo(target);
+  }
+
+  /**
+   * Store excess energy into containers or storage structures.
+   * @returns Transfer status, `EMPTY` when no carried energy, or `NO_TARGET` when no container space exists.
+   */
+  storeEnergyInContainers(): ActionStatus {
+    if (this.empty()) return ActionStatus.EMPTY;
+
+    const room = this.creep.room;
+    if (!room) return ActionStatus.NO_TARGET;
+
+    const targets = room.find(FIND_STRUCTURES, {
+      filter: s =>
+        (s.structureType === STRUCTURE_CONTAINER || s.structureType === STRUCTURE_STORAGE) &&
+        (s.store?.getFreeCapacity(RESOURCE_ENERGY) ?? 0) > 0,
+    }) as (StructureContainer | StructureStorage)[];
+
+    if (targets.length === 0) return ActionStatus.NO_TARGET;
+
+    const target = this.creep.pos.findClosestByRange(targets) as StructureContainer | StructureStorage | null;
+    if (!target) return ActionStatus.NO_TARGET;
+
+    return this.transferEnergyTo(target);
+  }
+
+  /**
+   * Whether the creep can still carry more energy.
+   * @returns `true` when free capacity remains.
+   */
+  hasRoomForEnergy(): boolean {
+    return !this.full();
+  }
+
+  /**
+   * Current carried energy amount.
+   * @returns Energy stored on this creep.
+   */
+  getEnergyLevel(): number {
+    return this.creep.store?.getUsedCapacity(RESOURCE_ENERGY) ?? 0;
+  }
+
+  /**
+   * Maximum energy capacity of this creep.
+   * @returns Total capacity for energy in the creep's store.
+   */
+  getEnergyCapacity(): number {
+    const cap = this.creep.store?.getCapacity(RESOURCE_ENERGY);
+    return typeof cap === "number" ? cap : 0;
   }
 
   // Chapter 3: Upgrading, Building, and Repairing
@@ -595,4 +767,46 @@ export function towerDefendBase(tower: StructureTower): ActionStatus {
  */
 export function hasHostilesInRoom(room: Room): boolean {
   return room.find(FIND_HOSTILE_CREEPS).length > 0;
+}
+
+const tickHandlers: Array<() => void> = [];
+
+/**
+ * Register a callback to run every game tick.
+ * @param callback Function executed once per tick when `runTickHandlers` is invoked.
+ */
+export function onTick(callback: () => void): void {
+  tickHandlers.push(callback);
+}
+
+/**
+ * Execute all registered tick callbacks. Call this inside `module.exports.loop`.
+ */
+export function runTickHandlers(): void {
+  tickHandlers.forEach(cb => cb());
+}
+
+/**
+ * Iterate over every creep and invoke a handler with a wrapped `SimpleCreep`.
+ * @param handler Function called for each creep.
+ */
+export function forEachCreep(handler: (creep: SimpleCreep) => void): void {
+  for (const n in Game.creeps) {
+    const creep = Game.creeps[n];
+    if (!creep) continue;
+    handler(new SimpleCreep(creep));
+  }
+}
+
+/**
+ * Dispatch creeps to role-specific handlers using the stored `Role` value.
+ * @param handlers Map from `Role` to handler functions.
+ */
+export function runRole(handlers: Partial<Record<Role, (creep: SimpleCreep) => void>>): void {
+  forEachCreep(sc => {
+    const role = sc.getRole();
+    if (!role) return;
+    const handler = handlers[role];
+    if (handler) handler(sc);
+  });
 }

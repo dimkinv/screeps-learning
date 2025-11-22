@@ -1,21 +1,22 @@
 # Screeps Teaching Wrapper Library (Read-Only Overview)
 
-This repository hosts a TypeScript-first wrapper around the Screeps API meant for beginners (single-room, single-spawn focus). The goal is to simplify common tasks like harvesting, delivering energy, and maintaining creep populations while keeping terminology close to the base game so learners can transition smoothly.
+This repository hosts a TypeScript-first wrapper around the Screeps API meant for beginners (single-room, single-spawn focus). The goal is to simplify common tasks like harvesting, delivering energy, logistics, and maintaining creep populations while keeping terminology close to the base game so learners can transition smoothly.
 
 ## Repository layout
-- `src/simpleCreep.ts` — `SimpleCreep` class with harvesting, movement, safety, and energy-delivery helpers built on top of the Screeps creep API.
+- `src/simpleCreep.ts` — `SimpleCreep` class with harvesting, movement, safety, logistics (pickup/withdraw/store/fill), and utility helpers built on top of the Screeps creep API.
 - `src/populationManager.ts` — `PopulationManager` singleton that chooses deterministic creep bodies per role, tracks spawn queues, and maintains population targets.
 - `src/roles.ts` — `Role` enum (`Harvester`, `Worker`, `Soldier`) used to label creep behavior.
-- `src/status.ts` — `ActionStatus` enum returned by wrapper methods to indicate high-level outcomes.
+- `src/status.ts` — `ActionStatus` enum returned by wrapper methods to indicate high-level outcomes (movement, harvesting, transfers, pickups, etc.).
 - `src/loop.ts` — Example `module.exports.loop` showing how to wire the wrapper into a game tick.
 - `src/index.ts` / `src/main.ts` — Re-exports to consume the library from a Screeps project entry point.
 - `SCREEPS.API.md` and `instructions/SCREEPS.API.md` — Quick references for common Screeps types and APIs while working with the wrapper.
 
 ## How to use the wrapper
 1. Copy the `src/` files into your Screeps TypeScript project (or import them from this package if published).
-2. In your `module.exports.loop`, instantiate `SimpleCreep` for existing creeps and call helpers like `findClosestSource()`, `harvest()`, `deliverEnergyToBase()`, and movement utilities (`moveTo`, `stayAwayFrom`).
-3. Use `PopulationManager` to maintain roles: call `maintainPopulation` with target counts, inspect `getQueuedSpawns()` to track spawn jobs, and iterate role-specific creeps with `forEachCreepOfRole`.
-4. Roles are stored on `creep.memory.role`; use `setRole` and `is(Role.Worker)` to keep behavior consistent.
+2. In your `module.exports.loop`, instantiate `SimpleCreep` for existing creeps and call helpers like `findClosestSource()`, `harvest()`, `pickupOrWithdrawEnergy()`, `deliverEnergyToBase()`, and movement utilities (`moveTo`, `stayAwayFrom`).
+3. Use logistics helpers to fill spawn/extensions (`fillExtensionsAndSpawn`), stash overflow (`storeEnergyInContainers`), and inspect store state (`getEnergyLevel`, `getEnergyCapacity`).
+4. Use `PopulationManager` to maintain roles: call `maintainPopulation` with target counts, inspect `getQueuedSpawns()` to track spawn jobs, and iterate role-specific creeps with `forEachCreepOfRole`.
+5. Roles are stored on `creep.memory.role`; use `setRole`, `is(Role.Worker)`, `remember`, and `recall` to keep behavior and state consistent. You can also dispatch handlers per role with `runRole` or attach tick callbacks via `onTick`/`runTickHandlers`.
 
 ## Design notes
 - APIs favor clarity over optimization: movement uses straightforward `moveTo` calls and path visualization; advanced tuning is intentionally out of scope for this chapter.
