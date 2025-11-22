@@ -14,4 +14,4 @@ export class SimpleCreepBase {
   }
 }
 
-export type SimpleCreepConstructor<T = SimpleCreepBase> = new (...args: SimpleCreepArgs) => T;
+export type SimpleCreepConstructor<T = SimpleCreepBase> = new (...args: any[]) => T;

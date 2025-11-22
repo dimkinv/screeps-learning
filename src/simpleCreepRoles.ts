@@ -3,6 +3,10 @@ import { SimpleCreepBase, SimpleCreepConstructor } from "./simpleCreepBase";
 
 export function RoleAndMemoryMixin<TBase extends SimpleCreepConstructor<SimpleCreepBase>>(Base: TBase) {
   return class RoleAndMemory extends Base {
+    constructor(...args: any[]) {
+      super(...args);
+    }
+
     /**
      * Read the creep's stored `role` from memory.
      * @returns Role value if set, otherwise `null`.

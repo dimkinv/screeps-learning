@@ -49,7 +49,7 @@ export function forEachCreep(handler: (creep: SimpleCreep) => void): void {
 export function runRole(handlers: Partial<Record<Role, (creep: SimpleCreep) => void>>): void {
   forEachCreep(sc => {
     const role = sc.getRole();
-    if (!role) return;
+    if (role === null) return;
     const handler = handlers[role];
     if (handler) handler(sc);
   });
