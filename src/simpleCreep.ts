@@ -242,6 +242,251 @@ export class SimpleCreep {
     return ActionStatus.ERROR;
   }
 
+  // Chapter 3: Upgrading, Building, and Repairing
+
+  /**
+   * Upgrade the current room controller.
+   * @returns `UPGRADING` when upgrading, `MOVING` while approaching, `EMPTY` if no energy, or `NO_TARGET` if no controller.
+   */
+  upgradeController(): ActionStatus {
+    if (this.empty()) return ActionStatus.EMPTY;
+    const controller = this.creep.room?.controller;
+    if (!controller) return ActionStatus.NO_TARGET;
+    if (!this.isNear(controller, 3)) return this.moveTo(controller);
+
+    const res = this.creep.upgradeController(controller);
+    if (res === OK) return ActionStatus.UPGRADING;
+    return ActionStatus.ERROR;
+  }
+
+  /**
+   * Find and build the closest construction site in the room.
+   * @returns `BUILDING` on success, `MOVING` while approaching, `EMPTY` if no energy, or `NO_SITE`/`NO_TARGET` if none found.
+   */
+  buildClosestSite(): ActionStatus {
+    if (this.empty()) return ActionStatus.EMPTY;
+    const room = this.creep.room;
+    if (!room) return ActionStatus.NO_TARGET;
+
+    const sites = room.find(FIND_CONSTRUCTION_SITES) as ConstructionSite[];
+    if (!sites || sites.length === 0) return ActionStatus.NO_SITE;
+
+    const site = this.creep.pos.findClosestByRange(sites) as ConstructionSite | null;
+    if (!site) return ActionStatus.NO_SITE;
+
+    if (!this.isNear(site, 3)) return this.moveTo(site);
+
+    const res = this.creep.build(site);
+    if (res === OK) return ActionStatus.BUILDING;
+    return ActionStatus.ERROR;
+  }
+
+  /**
+   * Build a construction site at or near a specific position.
+   * @param position Desired build position.
+   * @returns Status from build attempt, or `NO_SITE`/`NO_TARGET` if no site exists there.
+   */
+  buildAt(position: RoomPosition): ActionStatus {
+    if (this.empty()) return ActionStatus.EMPTY;
+    if (position.roomName !== this.creep.room?.name) return ActionStatus.NO_TARGET;
+
+    const sites = position.lookFor(LOOK_CONSTRUCTION_SITES) as ConstructionSite[];
+    const site = sites[0];
+    if (!site) return ActionStatus.NO_SITE;
+
+    if (!this.isNear(site, 3)) return this.moveTo(site);
+
+    const res = this.creep.build(site);
+    if (res === OK) return ActionStatus.BUILDING;
+    return ActionStatus.ERROR;
+  }
+
+  /**
+   * Repair the nearest damaged structure (hits below max).
+   * @returns `REPAIRING` when repairing, `MOVING` while approaching, `EMPTY` if no energy, or `NO_TARGET` if nothing to fix.
+   */
+  repairClosestDamagedStructure(): ActionStatus {
+    if (this.empty()) return ActionStatus.EMPTY;
+    const room = this.creep.room;
+    if (!room) return ActionStatus.NO_TARGET;
+
+    const damaged = room.find(FIND_STRUCTURES, { filter: s => s.hits < s.hitsMax }) as Structure[];
+    if (!damaged || damaged.length === 0) return ActionStatus.NO_TARGET;
+
+    const target = this.creep.pos.findClosestByRange(damaged) as Structure | null;
+    if (!target) return ActionStatus.NO_TARGET;
+
+    if (!this.isNear(target, 3)) return this.moveTo(target);
+
+    const res = this.creep.repair(target);
+    if (res === OK) return ActionStatus.REPAIRING;
+    return ActionStatus.ERROR;
+  }
+
+  /**
+   * Repair a specific structure target.
+   * @param target Structure to repair.
+   * @returns Repair status or `EMPTY` if no energy.
+   */
+  repair(target: Structure): ActionStatus {
+    if (this.empty()) return ActionStatus.EMPTY;
+    if (!this.isNear(target, 3)) return this.moveTo(target);
+
+    const res = this.creep.repair(target);
+    if (res === OK) return ActionStatus.REPAIRING;
+    return ActionStatus.ERROR;
+  }
+
+  /**
+   * Whether any work is available (construction, repair, or controller upgrades).
+   * @returns `true` if something needs building, repairing, or upgrading.
+   */
+  hasWork(): boolean {
+    const room = this.creep.room;
+    if (!room) return false;
+
+    const hasSite = room.find(FIND_CONSTRUCTION_SITES).length > 0;
+    if (hasSite) return true;
+
+    const damaged = room.find(FIND_STRUCTURES, { filter: s => s.hits < s.hitsMax });
+    if (damaged.length > 0) return true;
+
+    const controller = room.controller;
+    if (controller && controller.level < 8) return true;
+
+    return false;
+  }
+
+  /**
+   * Do "best" available work: build sites first, then repair, otherwise upgrade controller.
+   * @returns Status from the chosen action, or `NO_TARGET` if nothing to do.
+   */
+  doWork(): ActionStatus {
+    const room = this.creep.room;
+    if (!room) return ActionStatus.NO_TARGET;
+
+    const sites = room.find(FIND_CONSTRUCTION_SITES) as ConstructionSite[];
+    if (sites.length > 0) return this.buildClosestSite();
+
+    const damaged = room.find(FIND_STRUCTURES, { filter: s => s.hits < s.hitsMax }) as Structure[];
+    if (damaged.length > 0) return this.repairClosestDamagedStructure();
+
+    return this.upgradeController();
+  }
+
+  // Chapter 4: Fighting & Defense
+
+  /**
+   * Melee attack the closest hostile creep in the room.
+   * @returns `ATTACKING` when attacking, `MOVING` while approaching, or `NO_TARGET` if none found.
+   */
+  attackClosestHostile(): ActionStatus {
+    const room = this.creep.room;
+    if (!room) return ActionStatus.NO_TARGET;
+    const hostiles = room.find(FIND_HOSTILE_CREEPS) as Creep[];
+    if (!hostiles || hostiles.length === 0) return ActionStatus.NO_TARGET;
+    const target = this.creep.pos.findClosestByRange(hostiles) as Creep | null;
+    if (!target) return ActionStatus.NO_TARGET;
+
+    if (!this.isNear(target, 1)) {
+      const moveStatus = this.moveTo(target);
+      if (moveStatus === ActionStatus.NO_PATH || moveStatus === ActionStatus.ERROR) return moveStatus;
+      return ActionStatus.MOVING;
+    }
+
+    const res = this.creep.attack(target);
+    if (res === OK) return ActionStatus.ATTACKING;
+    return ActionStatus.ERROR;
+  }
+
+  /**
+   * Ranged attack the closest hostile creep.
+   * @returns `ATTACKING` when firing, `MOVING` while closing distance, or `NO_TARGET` if none found.
+   */
+  rangedAttackClosestHostile(): ActionStatus {
+    const room = this.creep.room;
+    if (!room) return ActionStatus.NO_TARGET;
+    const hostiles = room.find(FIND_HOSTILE_CREEPS) as Creep[];
+    if (!hostiles || hostiles.length === 0) return ActionStatus.NO_TARGET;
+    const target = this.creep.pos.findClosestByRange(hostiles) as Creep | null;
+    if (!target) return ActionStatus.NO_TARGET;
+
+    const range = this.creep.pos.getRangeTo(target);
+    if (range > 3) {
+      const moveStatus = this.moveTo(target);
+      if (moveStatus === ActionStatus.NO_PATH || moveStatus === ActionStatus.ERROR) return moveStatus;
+      return ActionStatus.MOVING;
+    }
+
+    const res = this.creep.rangedAttack(target);
+    if (res === OK) return ActionStatus.ATTACKING;
+    return ActionStatus.ERROR;
+  }
+
+  /**
+   * Keep safe distance from hostiles while attempting ranged attack.
+   * @returns `RETREATING`, `ATTACKING`, `MOVING`, or `NO_TARGET`.
+   */
+  kiteHostile(): ActionStatus {
+    const room = this.creep.room;
+    if (!room) return ActionStatus.NO_TARGET;
+    const hostiles = room.find(FIND_HOSTILE_CREEPS) as Creep[];
+    if (!hostiles || hostiles.length === 0) return ActionStatus.NO_TARGET;
+    const target = this.creep.pos.findClosestByRange(hostiles) as Creep | null;
+    if (!target) return ActionStatus.NO_TARGET;
+
+    const range = this.creep.pos.getRangeTo(target);
+    if (range < 3) return this.stayAwayFrom(target, 3);
+    if (range <= 3) {
+      const res = this.creep.rangedAttack(target);
+      if (res === OK) return ActionStatus.ATTACKING;
+      return ActionStatus.ERROR;
+    }
+    return this.moveTo(target);
+  }
+
+  /**
+   * Heal the creep if damaged.
+   * @returns `HEALING` when healed, `HEALTHY` if no damage.
+   */
+  healSelfIfNeeded(): ActionStatus {
+    if (this.creep.hits >= this.creep.hitsMax) return ActionStatus.HEALTHY;
+    const res = (this.creep.heal as any)(this.creep);
+    if (res === OK) return ActionStatus.HEALING;
+    return ActionStatus.ERROR;
+  }
+
+  /**
+   * Check if the room contains any hostile creeps.
+   * @returns `true` when hostiles are present.
+   */
+  hasHostilesInRoom(): boolean {
+    const room = this.creep.room;
+    if (!room) return false;
+    return room.find(FIND_HOSTILE_CREEPS).length > 0;
+  }
+
+  /**
+   * Move back toward base/spawn when hostiles are nearby.
+   * @returns Movement status or `NO_TARGET` if room/spawn is missing.
+   */
+  fleeToBase(): ActionStatus {
+    const room = this.creep.room;
+    if (!room) return ActionStatus.NO_TARGET;
+    const hostiles = room.find(FIND_HOSTILE_CREEPS) as Creep[];
+    if (hostiles && hostiles.length > 0) {
+      const target = this.creep.pos.findClosestByRange(hostiles) as Creep | null;
+      if (target) {
+        const range = this.creep.pos.getRangeTo(target);
+        if (range < 4) {
+          const fleeStatus = this.stayAwayFrom(target, 4);
+          if (fleeStatus !== ActionStatus.NO_PATH && fleeStatus !== ActionStatus.ERROR) return fleeStatus;
+        }
+      }
+    }
+    return this.goHome();
+  }
+
   /**
    * Deposit carried energy into base structures (spawn + extensions + towers + containers/storage).
    * @returns Status reflecting the attempted transfer, or `NO_TARGET` if nothing needs energy.
@@ -292,4 +537,62 @@ export class SimpleCreep {
     const free = (s.store && s.store.getFreeCapacity ? s.store.getFreeCapacity(RESOURCE_ENERGY) : (s.energyCapacity && (s.energyCapacity - (s.energy ?? 0)))) ?? 0;
     return free > 0;
   }
+}
+
+/**
+ * Simple tower AI: attack hostiles, otherwise repair critical structures, otherwise heal injured creeps.
+ * @param tower Tower to command.
+ * @returns Action status reflecting the chosen action.
+ */
+export function towerDefendBase(tower: StructureTower): ActionStatus {
+  const energy =
+    (tower.store && (tower.store.getUsedCapacity ? tower.store.getUsedCapacity(RESOURCE_ENERGY) : undefined)) ??
+    (tower.energy ?? 0);
+  if (energy <= 0) return ActionStatus.EMPTY;
+
+  const room = tower.room;
+
+  // Attack closest hostile
+  const hostiles = room.find(FIND_HOSTILE_CREEPS) as Creep[];
+  if (hostiles.length > 0) {
+    const target = tower.pos.findClosestByRange(hostiles) as Creep | null;
+    if (target) {
+      const res = tower.attack(target);
+      if (res === OK) return ActionStatus.ATTACK;
+      return ActionStatus.ERROR;
+    }
+  }
+
+  // Repair critically damaged structures
+  const critical = room.find(FIND_STRUCTURES, { filter: s => s.hits < s.hitsMax * 0.5 }) as Structure[];
+  if (critical.length > 0) {
+    const target = tower.pos.findClosestByRange(critical) as Structure | null;
+    if (target) {
+      const res = tower.repair(target);
+      if (res === OK) return ActionStatus.REPAIR;
+      return ActionStatus.ERROR;
+    }
+  }
+
+  // Heal injured friendly creeps
+  const injured = room.find(FIND_MY_CREEPS, { filter: c => c.hits < c.hitsMax }) as Creep[];
+  if (injured.length > 0) {
+    const target = tower.pos.findClosestByRange(injured) as Creep | null;
+    if (target) {
+      const res = tower.heal(target);
+      if (res === OK) return ActionStatus.HEAL;
+      return ActionStatus.ERROR;
+    }
+  }
+
+  return ActionStatus.IDLE;
+}
+
+/**
+ * Check if a room currently has hostile creeps.
+ * @param room Room to inspect.
+ * @returns `true` if any hostiles are present.
+ */
+export function hasHostilesInRoom(room: Room): boolean {
+  return room.find(FIND_HOSTILE_CREEPS).length > 0;
 }
