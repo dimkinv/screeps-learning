@@ -1,8 +1,27 @@
 import { ActionStatus } from "./status";
 import { SimpleCreepBase, SimpleCreepConstructor } from "./simpleCreepBase";
 
+export interface Chapter1HarvestingCapabilities {
+  full(): boolean;
+  empty(): boolean;
+  needsEnergy(): boolean;
+  isNear(target: RoomPosition | { pos: RoomPosition } | RoomObject, range?: number): boolean;
+  moveTo(target: RoomPosition | { pos: RoomPosition } | RoomObject): ActionStatus;
+  moveNear(target: RoomPosition | { pos: RoomPosition } | RoomObject): ActionStatus;
+  stayAwayFrom(target: RoomPosition | { pos: RoomPosition } | RoomObject, distance: number): ActionStatus;
+  goHome(): ActionStatus;
+  storeEnergyToBase(): ActionStatus;
+  harvest(source: Source): ActionStatus;
+  transferEnergyTo(target: Structure | RoomObject): ActionStatus;
+  withdraw(target: Structure | any): ActionStatus;
+}
+
 export function Chapter1HarvestingMixin<TBase extends SimpleCreepConstructor<SimpleCreepBase>>(Base: TBase) {
-  return class Chapter1Harvesting extends Base {
+  return class Chapter1Harvesting extends Base implements Chapter1HarvestingCapabilities {
+    constructor(...args: any[]) {
+      super(...args);
+    }
+
     /**
      * Find the nearest energy source within the current room.
      * @returns Closest `Source` or `null` if none exist.
@@ -46,7 +65,7 @@ export function Chapter1HarvestingMixin<TBase extends SimpleCreepConstructor<Sim
      */
     moveTo(target: RoomPosition | { pos: RoomPosition } | RoomObject): ActionStatus {
       if (this.isNear(target, 0)) return ActionStatus.ALREADY_THERE;
-      const moveResult = this.creep.moveTo(target as any, { visualizePathStyle: { stroke: "#ffffff" } });
+      const moveResult = this.creep.moveTo(target as any, { visualizePathStyle: { stroke: "#ffffff" } }) as number;
       if (moveResult === ERR_NO_PATH) return ActionStatus.NO_PATH;
       if (moveResult !== OK && moveResult !== ERR_TIRED) return ActionStatus.ERROR;
       return ActionStatus.MOVING;
@@ -85,7 +104,6 @@ export function Chapter1HarvestingMixin<TBase extends SimpleCreepConstructor<Sim
 
       const dir = this.creep.pos.getDirectionTo(next);
       const moveResult = this.creep.move(dir);
-      if (moveResult === ERR_NO_PATH) return ActionStatus.NO_PATH;
       if (moveResult !== OK && moveResult !== ERR_TIRED) return ActionStatus.ERROR;
       return ActionStatus.RETREATING;
     }

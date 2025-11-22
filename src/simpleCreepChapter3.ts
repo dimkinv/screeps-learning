@@ -1,8 +1,15 @@
 import { ActionStatus } from "./status";
 import { SimpleCreepBase, SimpleCreepConstructor } from "./simpleCreepBase";
+import { Chapter1HarvestingCapabilities } from "./simpleCreepChapter1";
 
-export function Chapter3WorkMixin<TBase extends SimpleCreepConstructor<SimpleCreepBase>>(Base: TBase) {
+export function Chapter3WorkMixin<
+  TBase extends SimpleCreepConstructor<SimpleCreepBase & Chapter1HarvestingCapabilities>,
+>(Base: TBase) {
   return class Chapter3Work extends Base {
+    constructor(...args: any[]) {
+      super(...args);
+    }
+
     /**
      * Upgrade the current room controller.
      * @returns `UPGRADING` when upgrading, `MOVING` while approaching, `EMPTY` if no energy, or `NO_TARGET` if no controller.

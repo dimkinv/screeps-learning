@@ -1,8 +1,15 @@
 import { ActionStatus } from "./status";
 import { SimpleCreepBase, SimpleCreepConstructor } from "./simpleCreepBase";
+import { Chapter1HarvestingCapabilities } from "./simpleCreepChapter1";
 
-export function Chapter4CombatMixin<TBase extends SimpleCreepConstructor<SimpleCreepBase>>(Base: TBase) {
+export function Chapter4CombatMixin<
+  TBase extends SimpleCreepConstructor<SimpleCreepBase & Chapter1HarvestingCapabilities>,
+>(Base: TBase) {
   return class Chapter4Combat extends Base {
+    constructor(...args: any[]) {
+      super(...args);
+    }
+
     /**
      * Melee attack the closest hostile creep in the room.
      * @returns `ATTACKING` when attacking, `MOVING` while approaching, or `NO_TARGET` if none found.

@@ -1,8 +1,15 @@
 import { ActionStatus } from "./status";
 import { SimpleCreepBase, SimpleCreepConstructor } from "./simpleCreepBase";
+import { Chapter1HarvestingCapabilities } from "./simpleCreepChapter1";
 
-export function Chapter5LogisticsMixin<TBase extends SimpleCreepConstructor<SimpleCreepBase>>(Base: TBase) {
+export function Chapter5LogisticsMixin<
+  TBase extends SimpleCreepConstructor<SimpleCreepBase & Chapter1HarvestingCapabilities>,
+>(Base: TBase) {
   return class Chapter5Logistics extends Base {
+    constructor(...args: any[]) {
+      super(...args);
+    }
+
     /**
      * Find the best nearby non-source energy target (dropped energy, then containers, then storage).
      * @returns Dropped resource, container, storage, or `null` when nothing is available.
