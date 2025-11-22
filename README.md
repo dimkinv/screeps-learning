@@ -1,11 +1,28 @@
-# Screeps Teaching Wrapper — Chapter 1
+# Screeps Teaching Wrapper Library (Read-Only Overview)
 
-This workspace contains a minimal TypeScript wrapper for Screeps designed for teaching. Files are located in `src/`.
+This repository hosts a TypeScript-first wrapper around the Screeps API meant for beginners (single-room, single-spawn focus). The goal is to simplify common tasks like harvesting, delivering energy, and maintaining creep populations while keeping terminology close to the base game so learners can transition smoothly.
 
-- `src/roles.ts` — `Role` enum
-- `src/status.ts` — `ActionStatus` enum used by wrapper methods
-- `src/simpleCreep.ts` — `SimpleCreep` wrapper implementing Chapter 1 APIs (harvest, findClosestSource, transfer, withdraw, deliverEnergyToBase, etc.)
-- `src/index.ts` — library exports
-- `src/loop.ts` — example `module.exports.loop` using the wrapper
+## Repository layout
+- `src/simpleCreep.ts` — `SimpleCreep` class with harvesting, movement, safety, and energy-delivery helpers built on top of the Screeps creep API.
+- `src/populationManager.ts` — `PopulationManager` singleton that chooses deterministic creep bodies per role, tracks spawn queues, and maintains population targets.
+- `src/roles.ts` — `Role` enum (`Harvester`, `Worker`, `Soldier`) used to label creep behavior.
+- `src/status.ts` — `ActionStatus` enum returned by wrapper methods to indicate high-level outcomes.
+- `src/loop.ts` — Example `module.exports.loop` showing how to wire the wrapper into a game tick.
+- `src/index.ts` / `src/main.ts` — Re-exports to consume the library from a Screeps project entry point.
+- `SCREEPS.API.md` and `instructions/SCREEPS.API.md` — Quick references for common Screeps types and APIs while working with the wrapper.
 
-Usage: copy the `src` folder files into your Screeps TypeScript project or compile as usual. The example loop is intentionally simple to show the primitives.
+## How to use the wrapper
+1. Copy the `src/` files into your Screeps TypeScript project (or import them from this package if published).
+2. In your `module.exports.loop`, instantiate `SimpleCreep` for existing creeps and call helpers like `findClosestSource()`, `harvest()`, `deliverEnergyToBase()`, and movement utilities (`moveTo`, `stayAwayFrom`).
+3. Use `PopulationManager` to maintain roles: call `maintainPopulation` with target counts, inspect `getQueuedSpawns()` to track spawn jobs, and iterate role-specific creeps with `forEachCreepOfRole`.
+4. Roles are stored on `creep.memory.role`; use `setRole` and `is(Role.Worker)` to keep behavior consistent.
+
+## Design notes
+- APIs favor clarity over optimization: movement uses straightforward `moveTo` calls and path visualization; advanced tuning is intentionally out of scope for this chapter.
+- The wrapper returns descriptive `ActionStatus` values instead of raw Screeps error codes to make decision logic easier for new players.
+- Energy delivery prioritizes the common early-game structures (spawn → extensions → towers → containers/storage) and assumes all interactions happen within one room.
+
+## Next steps for learners
+- Extend `SimpleCreep` with building, upgrading, or combat behaviors using the same status pattern.
+- Add TypeScript compilation checks (`tsc`) and tests/simulations to validate behavior as you expand the wrapper.
+- Experiment with tweaking `PopulationManager` body selection or adding per-room configuration as your base grows.
