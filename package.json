@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node build/watch.js",
     "build": "tsc --outDir dist_tmp && node build/flatten.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "compile": "tsc",
+    "test": "npm run compile && node --test dist/**/*.test.js"
   },
   "keywords": [],
   "author": "",
