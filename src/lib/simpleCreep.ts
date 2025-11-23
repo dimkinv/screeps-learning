@@ -1,9 +1,9 @@
 import { Role } from "./roles";
 import { SimpleCreepBase } from "./simpleCreepBase";
-import { HarvestingMixin } from "./simpleCreepChapter1";
-import { WorkMixin } from "./simpleCreepChapter3";
-import { CombatMixin } from "./simpleCreepChapter4";
-import { LogisticsMixin } from "./simpleCreepChapter5";
+import { HarvestingMixin } from "./harvestingMixins";
+import { WorkMixin } from "./workMixins";
+import { CombatMixin } from "./combatMixins";
+import { LogisticsMixin } from "./logisticsMixins";
 import { RoleAndMemoryMixin } from "./simpleCreepRoles";
 export { towerDefendBase, hasHostilesInRoom } from "./simpleCreepUtilities";
 
