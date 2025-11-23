@@ -1,9 +1,9 @@
 import { ActionStatus } from "./status";
 import { SimpleCreepBase, SimpleCreepConstructor } from "./simpleCreepBase";
-import { Chapter1HarvestingCapabilities } from "./simpleCreepChapter1";
+import { HarvestingCapabilities } from "./simpleCreepChapter1";
 
-export function Chapter5LogisticsMixin<
-  TBase extends SimpleCreepConstructor<SimpleCreepBase & Chapter1HarvestingCapabilities>,
+export function LogisticsMixin<
+  TBase extends SimpleCreepConstructor<SimpleCreepBase & HarvestingCapabilities>,
 >(Base: TBase) {
   return class Chapter5Logistics extends Base {
     constructor(...args: any[]) {
@@ -212,4 +212,4 @@ export function Chapter5LogisticsMixin<
   };
 }
 
-export type Chapter5Logistics = InstanceType<ReturnType<typeof Chapter5LogisticsMixin>>;
+export type Chapter5Logistics = InstanceType<ReturnType<typeof LogisticsMixin>>;

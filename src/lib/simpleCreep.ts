@@ -1,14 +1,14 @@
 import { Role } from "./roles";
 import { SimpleCreepBase } from "./simpleCreepBase";
-import { Chapter1HarvestingMixin } from "./simpleCreepChapter1";
-import { Chapter3WorkMixin } from "./simpleCreepChapter3";
-import { Chapter4CombatMixin } from "./simpleCreepChapter4";
-import { Chapter5LogisticsMixin } from "./simpleCreepChapter5";
+import { HarvestingMixin } from "./simpleCreepChapter1";
+import { WorkMixin } from "./simpleCreepChapter3";
+import { CombatMixin } from "./simpleCreepChapter4";
+import { LogisticsMixin } from "./simpleCreepChapter5";
 import { RoleAndMemoryMixin } from "./simpleCreepRoles";
 export { towerDefendBase, hasHostilesInRoom } from "./simpleCreepUtilities";
 
-const SimpleCreepComposed = Chapter4CombatMixin(
-  Chapter3WorkMixin(Chapter5LogisticsMixin(Chapter1HarvestingMixin(RoleAndMemoryMixin(SimpleCreepBase)))),
+const SimpleCreepComposed = CombatMixin(
+  WorkMixin(LogisticsMixin(HarvestingMixin(RoleAndMemoryMixin(SimpleCreepBase)))),
 );
 
 export class SimpleCreep extends SimpleCreepComposed {}

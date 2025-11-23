@@ -1,7 +1,7 @@
 import { ActionStatus } from "./status";
 import { SimpleCreepBase, SimpleCreepConstructor } from "./simpleCreepBase";
 
-export interface Chapter1HarvestingCapabilities {
+export interface HarvestingCapabilities {
   full(): boolean;
   empty(): boolean;
   needsEnergy(): boolean;
@@ -16,8 +16,8 @@ export interface Chapter1HarvestingCapabilities {
   withdraw(target: Structure | any): ActionStatus;
 }
 
-export function Chapter1HarvestingMixin<TBase extends SimpleCreepConstructor<SimpleCreepBase>>(Base: TBase) {
-  return class Chapter1Harvesting extends Base implements Chapter1HarvestingCapabilities {
+export function HarvestingMixin<TBase extends SimpleCreepConstructor<SimpleCreepBase>>(Base: TBase) {
+  return class Chapter1Harvesting extends Base implements HarvestingCapabilities {
     constructor(...args: any[]) {
       super(...args);
     }
@@ -235,4 +235,4 @@ export function Chapter1HarvestingMixin<TBase extends SimpleCreepConstructor<Sim
   };
 }
 
-export type Chapter1Harvesting = InstanceType<ReturnType<typeof Chapter1HarvestingMixin>>;
+export type Chapter1Harvesting = InstanceType<ReturnType<typeof HarvestingMixin>>;
