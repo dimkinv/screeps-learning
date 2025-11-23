@@ -176,6 +176,17 @@ export function Chapter1HarvestingMixin<TBase extends SimpleCreepConstructor<Sim
       // Only act if spawn is adjacent ("near")
       if (!this.isNear(spawn, 1)) return ActionStatus.NO_TARGET;
 
+      const carrying = (this.creep.store && this.creep.store.getUsedCapacity)
+        ? (this.creep.store.getUsedCapacity(RESOURCE_ENERGY) ?? 0)
+        : 0;
+
+      const spawnFree = (spawn.store && (spawn.store.getFreeCapacity))
+        ? (spawn.store.getFreeCapacity(RESOURCE_ENERGY) ?? 0)
+        : ((spawn.store.getCapacity(RESOURCE_ENERGY) ?? 0) - (spawn.store[RESOURCE_ENERGY] ?? 0));
+
+      // If the spawn doesn't have enough free room for ALL the creep's energy, report TARGET_FULL
+      if (spawnFree < carrying) return ActionStatus.TARGET_FULL;
+
       const res = (this.creep.transfer as any)(spawn as any, RESOURCE_ENERGY);
       if (res === OK) return ActionStatus.TRANSFERRING;
       return ActionStatus.ERROR;

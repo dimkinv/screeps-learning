@@ -1,5 +1,6 @@
 export enum ActionStatus {
   MOVING = "MOVING",
+  TARGET_FULL = "TARGET_FULL",
   HARVESTING = "HARVESTING",
   NOT_IN_RANGE = "NOT_IN_RANGE",
   EMPTY = "EMPTY",

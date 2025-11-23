@@ -1,5 +1,5 @@
 import { Role } from "./roles";
-import { SimpleCreep } from "./simpleCreep";
+import { SimpleCreep } from './simpleCreep';
 
 type SpawnBuildResult = "SPAWNING" | "NOT_ENOUGH_ENERGY" | "SPAWN_BUSY" | "ERROR";
 type MaintainStatus = "OK" | "SPAWNING" | "CAPPED" | "BLOCKED";

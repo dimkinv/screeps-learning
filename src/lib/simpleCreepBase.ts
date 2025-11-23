@@ -1,6 +1,6 @@
 import { Role } from "./roles";
 
-export type CreepWithTypedMemory<R extends Role> = Creep & { memory: CreepMemory & { role: R } };
+export type CreepWithTypedMemory<R extends Role> = Creep & { memory: CreepMemory & { role: R } & {[id: string]: string} };
 
 export type SimpleCreepArgs = [creep: Creep, homeSpawnName?: string];
 

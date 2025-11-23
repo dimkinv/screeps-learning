@@ -1,5 +1,5 @@
-export { Role } from "./roles";
-export { ActionStatus } from "./status";
+export { Role } from "./lib/roles";
+export { ActionStatus } from "./lib/status";
 export {
   SimpleCreep,
   towerDefendBase,
@@ -8,5 +8,5 @@ export {
   runTickHandlers,
   forEachCreep,
   runRole,
-} from "./simpleCreep";
-export { PopulationManager } from "./populationManager";
+} from "./lib/simpleCreep";
+export { PopulationManager } from "./lib/populationManager";
