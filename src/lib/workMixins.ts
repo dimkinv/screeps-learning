@@ -1,6 +1,6 @@
 import { ActionStatus } from "./status";
 import { SimpleCreepBase, SimpleCreepConstructor } from "./simpleCreepBase";
-import { HarvestingCapabilities } from "./harvestingMixins";
+import { HarvestingCapabilities } from "./mixins/harvestingMixins";
 
 export function WorkMixin<
   TBase extends SimpleCreepConstructor<SimpleCreepBase & HarvestingCapabilities>,

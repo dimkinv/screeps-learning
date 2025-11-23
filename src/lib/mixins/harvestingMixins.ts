@@ -1,5 +1,5 @@
-import { ActionStatus } from "./status";
-import { SimpleCreepBase, SimpleCreepConstructor } from "./simpleCreepBase";
+import { ActionStatus } from "../status";
+import { SimpleCreepBase, SimpleCreepConstructor } from "../simpleCreepBase";
 
 export interface HarvestingCapabilities {
   full(): boolean;

@@ -1,5 +1,5 @@
-import { ActionStatus } from "./status";
-import { SimpleCreepBase, SimpleCreepConstructor } from "./simpleCreepBase";
+import { ActionStatus } from "../status";
+import { SimpleCreepBase, SimpleCreepConstructor } from "../simpleCreepBase";
 import { HarvestingCapabilities } from "./harvestingMixins";
 
 export function CombatMixin<
