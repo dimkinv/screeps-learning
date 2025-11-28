@@ -16,23 +16,23 @@ export class SimpleCreep extends SimpleCreepComposed {}
 const tickHandlers: Array<() => void> = [];
 
 /**
- * Register a callback to run every game tick.
- * @param callback Function executed once per tick when `runTickHandlers` is invoked.
+ * Регистрирует колбэк, выполняемый каждый игровой тик.
+ * @param callback Функция, вызываемая при выполнении `runTickHandlers`.
  */
 export function onTick(callback: () => void): void {
   tickHandlers.push(callback);
 }
 
 /**
- * Execute all registered tick callbacks. Call this inside `module.exports.loop`.
+ * Выполняет все зарегистрированные колбэки тиков. Вызывайте внутри `module.exports.loop`.
  */
 export function runTickHandlers(): void {
   tickHandlers.forEach(cb => cb());
 }
 
 /**
- * Iterate over every creep and invoke a handler with a wrapped `SimpleCreep`.
- * @param handler Function called for each creep.
+ * Итерируется по всем крипам и вызывает обработчик с обёрткой `SimpleCreep`.
+ * @param handler Функция, вызываемая для каждого крипа.
  */
 export function forEachCreep(handler: (creep: SimpleCreep) => void): void {
   for (const n in Game.creeps) {
@@ -43,8 +43,8 @@ export function forEachCreep(handler: (creep: SimpleCreep) => void): void {
 }
 
 /**
- * Dispatch creeps to role-specific handlers using the stored `Role` value.
- * @param handlers Map from `Role` to handler functions.
+ * Рассылает крипов в обработчики по ролям на основе сохранённого `Role`.
+ * @param handlers Отображение `Role` → функция-обработчик.
  */
 export function runRole(handlers: Partial<Record<Role, (creep: SimpleCreep) => void>>): void {
   forEachCreep(sc => {

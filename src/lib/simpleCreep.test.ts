@@ -109,7 +109,7 @@ describe('SimpleCreep Chapter1 harvesting', () => {
     const target = { pos: createPosition(2, 2) } as AnyCreep;
     const movingCreep = createCreep({ pos: createPosition(0, 0), store: createStore({ used: 50, capacity: 100 }) });
     const scMoving = new SimpleCreep(movingCreep);
-    assert.strictEqual(scMoving.transferEnergyTo(target), ActionStatus.MOVING);
+    assert.strictEqual(scMoving.transferEnergyTo(target), ActionStatus.NOT_IN_RANGE);
 
     const transferCreep = createCreep({
       pos: createPosition(0, 0),
@@ -135,6 +135,20 @@ describe('SimpleCreep Chapter1 harvesting', () => {
       ActionStatus.WITHDRAWING,
     );
   });
+
+  test('findClosestTarget can resolve controller and dropped energy', () => {
+    const controller = { pos: createPosition(1, 1) } as StructureController;
+    const drop = { pos: createPosition(2, 2), resourceType: RESOURCE_ENERGY } as Resource;
+    const room = createRoom({
+      controller,
+      find: (type: FindConstant) => (type === FIND_DROPPED_RESOURCES ? [drop] : type === FIND_SOURCES ? [] : []),
+    });
+    const creep = createCreep({ room, pos: createPosition(0, 0) });
+    const sc = new SimpleCreep(creep);
+
+    assert.strictEqual(sc.findClosestTarget("controller"), controller);
+    assert.strictEqual(sc.findClosestTarget("droppedEnergy"), drop);
+  });
 });
 
 describe('Chapter3 work routines', () => {
@@ -144,7 +158,7 @@ describe('Chapter3 work routines', () => {
     const controller = { pos: createPosition(4, 4) } as StructureController;
     const room = createRoom({ controller });
     const mover = new SimpleCreep(createCreep({ room, pos: createPosition(0, 0), store: createStore({ used: 50, capacity: 100 }) }));
-    assert.strictEqual(mover.upgradeController(), ActionStatus.MOVING);
+    assert.strictEqual(mover.upgradeController(), ActionStatus.NOT_IN_RANGE);
 
     const upgrader = new SimpleCreep(createCreep({ room, pos: createPosition(4, 4), store: createStore({ used: 50, capacity: 100 }) }));
     assert.strictEqual(upgrader.upgradeController(), ActionStatus.UPGRADING);
@@ -173,14 +187,15 @@ describe('Chapter3 work routines', () => {
 describe('Chapter4 combat routines', () => {
   beforeEach(() => setupScreepsGlobals());
 
-  test('attackClosestHostile moves toward target then attacks when adjacent', () => {
+  test('findClosestHostile and attackHostile respect range', () => {
     const hostile = createCreep({ pos: createPosition(5, 5) });
     const room = createRoom({ find: (type: FindConstant) => (type === FIND_HOSTILE_CREEPS ? [hostile] : []) });
     const sc = new SimpleCreep(createCreep({ room, pos: createPosition(0, 0) }));
-    assert.strictEqual(sc.attackClosestHostile(), ActionStatus.MOVING);
+    assert.strictEqual(sc.findClosestHostile(), hostile);
+    assert.strictEqual(sc.attackHostile(hostile), ActionStatus.NOT_IN_RANGE);
 
     const adjacent = new SimpleCreep(createCreep({ room, pos: createPosition(5, 5) }));
-    assert.strictEqual(adjacent.attackClosestHostile(), ActionStatus.ATTACKING);
+    assert.strictEqual(adjacent.attackHostile(hostile), ActionStatus.ATTACKING);
   });
 
   test('healSelfIfNeeded heals when damaged and reports healthy otherwise', () => {

@@ -11,8 +11,8 @@ export function LogisticsMixin<
     }
 
     /**
-     * Find the best nearby non-source energy target (dropped energy, then containers, then storage).
-     * @returns Dropped resource, container, storage, or `null` when nothing is available.
+     * Ищет лучший источник энергии, отличный от добычи (сначала дроп, затем контейнеры, затем хранилище).
+     * @returns Сброшенный ресурс, контейнер, хранилище или `null`, если целей нет.
      */
     findEnergyDropOrContainer(): Resource | StructureContainer | StructureStorage | null {
       const room = this.creep.room;
@@ -50,8 +50,8 @@ export function LogisticsMixin<
     }
 
     /**
-     * High-level helper to pick up dropped energy or withdraw from a container/storage.
-     * @returns Status reflecting action progress, or `FULL`/`NO_TARGET` when blocked.
+     * Подбирает сброшенную энергию или извлекает её из контейнера/хранилища без перемещения.
+     * @returns Статус действия или `FULL`/`NO_TARGET`, если нет места или целей.
      */
     pickupOrWithdrawEnergy(): ActionStatus {
       if (this.full()) return ActionStatus.FULL;
@@ -61,17 +61,13 @@ export function LogisticsMixin<
 
       if ((target as Resource).resourceType === RESOURCE_ENERGY) {
         const resTarget = target as Resource;
-        if (!this.isNear(resTarget, 1)) return this.moveTo(resTarget);
+        if (!this.isNear(resTarget, 1)) return ActionStatus.NOT_IN_RANGE;
         const res = this.creep.pickup(resTarget);
         if (res === OK) return ActionStatus.PICKING_UP;
         return ActionStatus.ERROR;
       }
 
-      if (!this.isNear(target, 1)) {
-        const moveStatus = this.moveTo(target);
-        if (moveStatus === ActionStatus.NO_PATH || moveStatus === ActionStatus.ERROR) return moveStatus;
-        return ActionStatus.MOVING;
-      }
+      if (!this.isNear(target, 1)) return ActionStatus.NOT_IN_RANGE;
 
       const withdrawResult = this.withdraw(target as any);
       if (withdrawResult === ActionStatus.WITHDRAWING) return ActionStatus.WITHDRAWING;
@@ -79,8 +75,8 @@ export function LogisticsMixin<
     }
 
     /**
-     * Deliver energy to spawn and extensions, preferring whichever is closer.
-     * @returns Transfer status, `EMPTY` when out of energy, or `NO_TARGET` when no fill targets exist.
+     * Находит ближайший спаун или расширение, которому требуется энергия, и передаёт её без перемещения.
+     * @returns Статус передачи, `EMPTY`, если нет энергии, или `NO_TARGET`, если цели отсутствуют.
      */
     fillExtensionsAndSpawn(): ActionStatus {
       if (this.empty()) return ActionStatus.EMPTY;
@@ -103,8 +99,8 @@ export function LogisticsMixin<
     }
 
     /**
-     * Store excess energy into containers or storage structures.
-     * @returns Transfer status, `EMPTY` when no carried energy, or `NO_TARGET` when no container space exists.
+     * Ставит энергию в контейнеры или хранилища без автоматического движения.
+     * @returns Статус передачи, `EMPTY`, если нет энергии, или `NO_TARGET`, если нет свободных структур.
      */
     storeEnergyInContainers(): ActionStatus {
       if (this.empty()) return ActionStatus.EMPTY;
@@ -127,24 +123,24 @@ export function LogisticsMixin<
     }
 
     /**
-     * Whether the creep can still carry more energy.
-     * @returns `true` when free capacity remains.
+     * Проверяет, может ли крип взять ещё энергию.
+     * @returns `true`, если есть свободная ёмкость.
      */
     hasRoomForEnergy(): boolean {
       return !this.full();
     }
 
     /**
-     * Current carried energy amount.
-     * @returns Energy stored on this creep.
+     * Возвращает количество энергии у крипа.
+     * @returns Текущий запас энергии.
      */
     getEnergyLevel(): number {
       return this.creep.store?.getUsedCapacity(RESOURCE_ENERGY) ?? 0;
     }
 
     /**
-     * Maximum energy capacity of this creep.
-     * @returns Total capacity for energy in the creep's store.
+     * Максимальная вместимость энергии у крипа.
+     * @returns Общее доступное место под энергию.
      */
     getEnergyCapacity(): number {
       const cap = this.creep.store?.getCapacity(RESOURCE_ENERGY);
@@ -152,8 +148,8 @@ export function LogisticsMixin<
     }
 
     /**
-     * Deposit carried energy into base structures (spawn + extensions + towers + containers/storage).
-     * @returns Status reflecting the attempted transfer, or `NO_TARGET` if nothing needs energy.
+     * Размещает энергию в базовых структурах (спауны, расширения, башни, контейнеры/хранилище) без передвижения.
+     * @returns Статус передачи или `NO_TARGET`, если всем хватает энергии.
      */
     deliverEnergyToBase(): ActionStatus {
       if (this.empty()) return ActionStatus.EMPTY;

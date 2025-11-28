@@ -8,8 +8,8 @@ export function RoleAndMemoryMixin<TBase extends SimpleCreepConstructor<SimpleCr
     }
 
     /**
-     * Read the creep's stored `role` from memory.
-     * @returns Role value if set, otherwise `null`.
+     * Читает сохранённую роль крипа из памяти.
+     * @returns Значение роли или `null`, если не задано.
      */
     getRole(): Role | null {
       const r = this.creep.memory.role as Role | undefined;
@@ -17,42 +17,42 @@ export function RoleAndMemoryMixin<TBase extends SimpleCreepConstructor<SimpleCr
     }
 
     /**
-     * Check whether the creep matches a given role.
-     * @param role Target role to compare.
+     * Проверяет, соответствует ли крип указанной роли.
+     * @param role Целевая роль для сравнения.
      */
     is(role: Role): boolean {
       return this.getRole() === role;
     }
 
     /**
-     * Persist a new role on the creep's memory.
-     * @param role Role to assign.
+     * Записывает новую роль в память крипа.
+     * @param role Роль для назначения.
      */
     setRole(role: Role): void {
       this.creep.memory.role = role;
     }
 
     /**
-     * Store a value in the creep's memory under a custom key.
-     * @param key Memory key to store under.
-     * @param value Arbitrary serializable value to remember.
+     * Сохраняет значение в памяти крипа по указанному ключу.
+     * @param key Ключ памяти для сохранения.
+     * @param value Любое сериализуемое значение.
      */
     remember<T>(key: string, value: T): void {
       (this.creep.memory as any)[key] = value as any;
     }
 
     /**
-     * Retrieve a remembered value from the creep's memory.
-     * @param key Memory key to read.
-     * @returns Stored value or `undefined` if missing.
+     * Извлекает сохранённое значение из памяти крипа.
+     * @param key Ключ памяти.
+     * @returns Сохранённое значение или `undefined`, если его нет.
      */
     recall<T>(key: string): T | undefined {
       return (this.creep.memory as any)[key] as T | undefined;
     }
 
     /**
-     * Log a status message prefixed with creep name and role for easy debugging.
-     * @param message Message to print.
+     * Логирует сообщение с именем крипа и его ролью для удобной отладки.
+     * @param message Сообщение для вывода.
      */
     logStatus(message: string): void {
       const roleLabel = this.getRole() ?? "unknown";

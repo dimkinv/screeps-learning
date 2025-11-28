@@ -67,8 +67,8 @@ class PopulationManagerClass {
   }
 
   /**
-   * Check if a creep of the given role could be built right now with the primary spawn.
-   * @returns `true` when spawn is idle and a valid body fits available energy.
+   * Проверяет, можно ли сейчас создать крипа указанной роли на основном спауне.
+   * @returns `true`, если спаун свободен и энергии хватает на минимальное тело.
    */
   canBuildCreep(role: Role): boolean {
     const spawn = this.getPrimarySpawn();
@@ -82,8 +82,8 @@ class PopulationManagerClass {
   }
 
   /**
-   * Attempt to start spawning a creep of the given role.
-   * @returns Outcome describing whether spawning started, blocked, or errored.
+   * Пытается начать создание крипа указанной роли.
+   * @returns Результат, отражающий старт, блокировку или ошибку спауна.
    */
   buildCreep(role: Role): SpawnBuildResult {
     const spawn = this.getPrimarySpawn();
@@ -108,8 +108,8 @@ class PopulationManagerClass {
   }
 
   /**
-   * Count active creeps matching a role across the game.
-   * @returns Number of creeps with the given role in memory.
+   * Подсчитывает активных крипов с указанной ролью.
+   * @returns Количество крипов с заданной ролью.
    */
   getCreepCount(role: Role): number {
     let count = 0;
@@ -123,8 +123,8 @@ class PopulationManagerClass {
   }
 
   /**
-   * Ensure a minimum population for a single role, spawning if under target.
-   * @returns Status describing whether we are capped, spawning, or blocked.
+   * Обеспечивает минимальное количество крипов роли, создавая новых при нехватке.
+   * @returns Статус: достигнут лимит, идёт спаун или создание заблокировано.
    */
   maintainCreepsAtRole(role: Role, targetCount: number): MaintainStatus {
     const current = this.getCreepCount(role);
@@ -137,9 +137,9 @@ class PopulationManagerClass {
   }
 
   /**
-   * Maintain multiple role populations in one pass.
-   * @param targets Map of roles to desired counts.
-   * @returns Map of roles to per-role maintenance status.
+   * Поддерживает численность нескольких ролей за один проход.
+   * @param targets Отображение роль → требуемое количество.
+   * @returns Отображение роль → статус поддержки.
    */
   maintainPopulation(targets: Partial<Record<Role, number>>): Partial<Record<Role, MaintainStatus>> {
     const summary: Partial<Record<Role, MaintainStatus>> = {};
@@ -153,8 +153,8 @@ class PopulationManagerClass {
   }
 
   /**
-   * Report currently spawning creeps and their remaining time.
-   * @returns Array of spawn jobs with role, name, and remaining time.
+   * Сообщает о текущих заданиях спауна и оставшемся времени.
+   * @returns Список заданий спауна с ролью, именем и оставшимся временем.
    */
   getQueuedSpawns(): SpawnJob[] {
     const jobs: SpawnJob[] = [];
@@ -171,9 +171,9 @@ class PopulationManagerClass {
   }
 
   /**
-   * Iterate over all creeps with a given role, invoking a handler with a `SimpleCreep`.
-   * @param role Role to filter by.
-   * @param handler Callback executed for each creep matching the role.
+   * Проходит по всем крипам заданной роли, вызывая обработчик с `SimpleCreep`.
+   * @param role Роль для фильтрации.
+   * @param handler Колбэк, выполняемый для каждого крипа.
    */
   forEachCreepOfRole(role: Role, handler: (sc: SimpleCreep) => void) {
     for (const n in Game.creeps) {

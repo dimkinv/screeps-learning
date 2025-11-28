@@ -1,9 +1,9 @@
 import { ActionStatus } from "./status";
 
 /**
- * Simple tower AI: attack hostiles, otherwise repair critical structures, otherwise heal injured creeps.
- * @param tower Tower to command.
- * @returns Action status reflecting the chosen action.
+ * Простая логика башни: атаковать врагов, иначе чинить критично повреждённые постройки, иначе лечить союзников.
+ * @param tower Башня, которой управляем.
+ * @returns Статус действия, описывающий выбранный шаг.
  */
 export function towerDefendBase(tower: StructureTower): ActionStatus {
   const energy =
@@ -50,9 +50,9 @@ export function towerDefendBase(tower: StructureTower): ActionStatus {
 }
 
 /**
- * Check if a room currently has hostile creeps.
- * @param room Room to inspect.
- * @returns `true` if any hostiles are present.
+ * Проверяет, есть ли в комнате вражеские крипы.
+ * @param room Комната для проверки.
+ * @returns `true`, если обнаружены враги.
  */
 export function hasHostilesInRoom(room: Room): boolean {
   return room.find(FIND_HOSTILE_CREEPS).length > 0;

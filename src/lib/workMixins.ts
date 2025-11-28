@@ -11,14 +11,14 @@ export function WorkMixin<
     }
 
     /**
-     * Upgrade the current room controller.
-     * @returns `UPGRADING` when upgrading, `MOVING` while approaching, `EMPTY` if no energy, or `NO_TARGET` if no controller.
+     * Пытается улучшить контроллер комнаты без автоматического передвижения.
+     * @returns `UPGRADING` при успешном апгрейде, `NOT_IN_RANGE`, если далеко, `EMPTY` без энергии или `NO_TARGET`, если нет контроллера.
      */
     upgradeController(): ActionStatus {
       if (this.empty()) return ActionStatus.EMPTY;
       const controller = this.creep.room?.controller;
       if (!controller) return ActionStatus.NO_TARGET;
-      if (!this.isNear(controller, 3)) return this.moveTo(controller);
+      if (!this.isNear(controller, 3)) return ActionStatus.NOT_IN_RANGE;
 
       const res = this.creep.upgradeController(controller);
       if (res === OK) return ActionStatus.UPGRADING;
@@ -26,21 +26,26 @@ export function WorkMixin<
     }
 
     /**
-     * Find and build the closest construction site in the room.
-     * @returns `BUILDING` on success, `MOVING` while approaching, `EMPTY` if no energy, or `NO_SITE`/`NO_TARGET` if none found.
+     * Возвращает ближайшую стройплощадку в комнате.
+     * @returns Ближайший `ConstructionSite` или `null`, если площадки отсутствуют.
      */
-    buildClosestSite(): ActionStatus {
-      if (this.empty()) return ActionStatus.EMPTY;
+    findClosestConstructionSite(): ConstructionSite | null {
       const room = this.creep.room;
-      if (!room) return ActionStatus.NO_TARGET;
-
+      if (!room) return null;
       const sites = room.find(FIND_CONSTRUCTION_SITES) as ConstructionSite[];
-      if (!sites || sites.length === 0) return ActionStatus.NO_SITE;
+      if (!sites || sites.length === 0) return null;
+      return (this.creep.pos.findClosestByRange(sites) as ConstructionSite | null) ?? null;
+    }
 
-      const site = this.creep.pos.findClosestByRange(sites) as ConstructionSite | null;
-      if (!site) return ActionStatus.NO_SITE;
-
-      if (!this.isNear(site, 3)) return this.moveTo(site);
+    /**
+     * Строит указанную стройплощадку, ожидая, что крип сам управляет перемещением.
+     * @param site Целевая стройплощадка.
+     * @returns `BUILDING` при успехе, `NOT_IN_RANGE`, если далеко, `EMPTY`, если нет энергии, либо `NO_TARGET`, если площадка отсутствует.
+     */
+    buildSite(site: ConstructionSite | null): ActionStatus {
+      if (this.empty()) return ActionStatus.EMPTY;
+      if (!site) return ActionStatus.NO_TARGET;
+      if (!this.isNear(site, 3)) return ActionStatus.NOT_IN_RANGE;
 
       const res = this.creep.build(site);
       if (res === OK) return ActionStatus.BUILDING;
@@ -48,9 +53,9 @@ export function WorkMixin<
     }
 
     /**
-     * Build a construction site at or near a specific position.
-     * @param position Desired build position.
-     * @returns Status from build attempt, or `NO_SITE`/`NO_TARGET` if no site exists there.
+     * Пытается построить площадку, найденную в конкретной позиции.
+     * @param position Позиция, где ожидается стройплощадка.
+     * @returns Результат строительства или `NO_SITE`/`NO_TARGET`, если площадки нет.
      */
     buildAt(position: RoomPosition): ActionStatus {
       if (this.empty()) return ActionStatus.EMPTY;
@@ -60,7 +65,7 @@ export function WorkMixin<
       const site = sites[0];
       if (!site) return ActionStatus.NO_SITE;
 
-      if (!this.isNear(site, 3)) return this.moveTo(site);
+      if (!this.isNear(site, 3)) return ActionStatus.NOT_IN_RANGE;
 
       const res = this.creep.build(site);
       if (res === OK) return ActionStatus.BUILDING;
@@ -68,35 +73,28 @@ export function WorkMixin<
     }
 
     /**
-     * Repair the nearest damaged structure (hits below max).
-     * @returns `REPAIRING` when repairing, `MOVING` while approaching, `EMPTY` if no energy, or `NO_TARGET` if nothing to fix.
+     * Ищет ближайшую повреждённую структуру (hits ниже максимума).
+     * @returns Структура для ремонта или `null`, если всё исправно.
      */
-    repairClosestDamagedStructure(): ActionStatus {
-      if (this.empty()) return ActionStatus.EMPTY;
+    findClosestDamagedStructure(): Structure | null {
       const room = this.creep.room;
-      if (!room) return ActionStatus.NO_TARGET;
+      if (!room) return null;
 
       const damaged = room.find(FIND_STRUCTURES, { filter: s => s.hits < s.hitsMax }) as Structure[];
-      if (!damaged || damaged.length === 0) return ActionStatus.NO_TARGET;
+      if (!damaged || damaged.length === 0) return null;
 
-      const target = this.creep.pos.findClosestByRange(damaged) as Structure | null;
-      if (!target) return ActionStatus.NO_TARGET;
-
-      if (!this.isNear(target, 3)) return this.moveTo(target);
-
-      const res = this.creep.repair(target);
-      if (res === OK) return ActionStatus.REPAIRING;
-      return ActionStatus.ERROR;
+      return (this.creep.pos.findClosestByRange(damaged) as Structure | null) ?? null;
     }
 
     /**
-     * Repair a specific structure target.
-     * @param target Structure to repair.
-     * @returns Repair status or `EMPTY` if no energy.
+     * Ремонтирует указанную структуру без автоматического передвижения.
+     * @param target Структура для ремонта.
+     * @returns `REPAIRING` при успехе, `NOT_IN_RANGE`, если далеко, `EMPTY`, если нет энергии, либо `NO_TARGET`, если цель отсутствует.
      */
-    repair(target: Structure): ActionStatus {
+    repair(target: Structure | null): ActionStatus {
       if (this.empty()) return ActionStatus.EMPTY;
-      if (!this.isNear(target, 3)) return this.moveTo(target);
+      if (!target) return ActionStatus.NO_TARGET;
+      if (!this.isNear(target, 3)) return ActionStatus.NOT_IN_RANGE;
 
       const res = this.creep.repair(target);
       if (res === OK) return ActionStatus.REPAIRING;
@@ -104,8 +102,8 @@ export function WorkMixin<
     }
 
     /**
-     * Whether any work is available (construction, repair, or controller upgrades).
-     * @returns `true` if something needs building, repairing, or upgrading.
+     * Проверяет наличие работы (стройплощадки, ремонт или апгрейд контроллера).
+     * @returns `true`, если есть, что строить, чинить или улучшать.
      */
     hasWork(): boolean {
       const room = this.creep.room;
@@ -124,18 +122,15 @@ export function WorkMixin<
     }
 
     /**
-     * Do "best" available work: build sites first, then repair, otherwise upgrade controller.
-     * @returns Status from the chosen action, or `NO_TARGET` if nothing to do.
+     * Выбирает доступную задачу: строить, чинить или апгрейдить, не двигая крипа автоматически.
+     * @returns Статус выбранного действия или `NO_TARGET`, если работы нет.
      */
     doWork(): ActionStatus {
-      const room = this.creep.room;
-      if (!room) return ActionStatus.NO_TARGET;
+      const site = this.findClosestConstructionSite();
+      if (site) return this.buildSite(site);
 
-      const sites = room.find(FIND_CONSTRUCTION_SITES) as ConstructionSite[];
-      if (sites.length > 0) return this.buildClosestSite();
-
-      const damaged = room.find(FIND_STRUCTURES, { filter: s => s.hits < s.hitsMax }) as Structure[];
-      if (damaged.length > 0) return this.repairClosestDamagedStructure();
+      const damaged = this.findClosestDamagedStructure();
+      if (damaged) return this.repair(damaged);
 
       return this.upgradeController();
     }
