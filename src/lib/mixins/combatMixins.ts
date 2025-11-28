@@ -11,22 +11,25 @@ export function CombatMixin<
     }
 
     /**
-     * Melee attack the closest hostile creep in the room.
-     * @returns `ATTACKING` when attacking, `MOVING` while approaching, or `NO_TARGET` if none found.
+     * Находит ближайшего враждебного крипа в комнате.
+     * @returns Ближайший вражеский крип или `null`, если целей нет.
      */
-    attackClosestHostile(): ActionStatus {
+    findClosestHostile(): Creep | null {
       const room = this.creep.room;
-      if (!room) return ActionStatus.NO_TARGET;
+      if (!room) return null;
       const hostiles = room.find(FIND_HOSTILE_CREEPS) as Creep[];
-      if (!hostiles || hostiles.length === 0) return ActionStatus.NO_TARGET;
-      const target = this.creep.pos.findClosestByRange(hostiles) as Creep | null;
-      if (!target) return ActionStatus.NO_TARGET;
+      if (!hostiles || hostiles.length === 0) return null;
+      return (this.creep.pos.findClosestByRange(hostiles) as Creep | null) ?? null;
+    }
 
-      if (!this.isNear(target, 1)) {
-        const moveStatus = this.moveTo(target);
-        if (moveStatus === ActionStatus.NO_PATH || moveStatus === ActionStatus.ERROR) return moveStatus;
-        return ActionStatus.MOVING;
-      }
+    /**
+     * Выполняет ближнюю атаку по указанной цели без автоматического движения.
+     * @param target Вражеский крип.
+     * @returns `ATTACKING` при успешном ударе, `NOT_IN_RANGE`, если далеко, либо `NO_TARGET`, если цели нет.
+     */
+    attackHostile(target: Creep | null): ActionStatus {
+      if (!target) return ActionStatus.NO_TARGET;
+      if (!this.isNear(target, 1)) return ActionStatus.NOT_IN_RANGE;
 
       const res = this.creep.attack(target);
       if (res === OK) return ActionStatus.ATTACKING;
@@ -34,23 +37,14 @@ export function CombatMixin<
     }
 
     /**
-     * Ranged attack the closest hostile creep.
-     * @returns `ATTACKING` when firing, `MOVING` while closing distance, or `NO_TARGET` if none found.
+     * Производит дальнюю атаку по цели без изменения позиции.
+     * @param target Вражеский крип.
+     * @returns `ATTACKING` при успехе, `NOT_IN_RANGE`, если дальше трёх клеток, либо `NO_TARGET`, если цели нет.
      */
-    rangedAttackClosestHostile(): ActionStatus {
-      const room = this.creep.room;
-      if (!room) return ActionStatus.NO_TARGET;
-      const hostiles = room.find(FIND_HOSTILE_CREEPS) as Creep[];
-      if (!hostiles || hostiles.length === 0) return ActionStatus.NO_TARGET;
-      const target = this.creep.pos.findClosestByRange(hostiles) as Creep | null;
+    rangedAttackHostile(target: Creep | null): ActionStatus {
       if (!target) return ActionStatus.NO_TARGET;
-
       const range = this.creep.pos.getRangeTo(target);
-      if (range > 3) {
-        const moveStatus = this.moveTo(target);
-        if (moveStatus === ActionStatus.NO_PATH || moveStatus === ActionStatus.ERROR) return moveStatus;
-        return ActionStatus.MOVING;
-      }
+      if (range > 3) return ActionStatus.NOT_IN_RANGE;
 
       const res = this.creep.rangedAttack(target);
       if (res === OK) return ActionStatus.ATTACKING;
@@ -58,30 +52,22 @@ export function CombatMixin<
     }
 
     /**
-     * Keep safe distance from hostiles while attempting ranged attack.
-     * @returns `RETREATING`, `ATTACKING`, `MOVING`, or `NO_TARGET`.
+     * Держит безопасную дистанцию от ближайшего врага, атакуя его, если позволяет дальность.
+     * @returns `RETREATING`, `ATTACKING` или `NO_TARGET` при отсутствии врагов.
      */
     kiteHostile(): ActionStatus {
-      const room = this.creep.room;
-      if (!room) return ActionStatus.NO_TARGET;
-      const hostiles = room.find(FIND_HOSTILE_CREEPS) as Creep[];
-      if (!hostiles || hostiles.length === 0) return ActionStatus.NO_TARGET;
-      const target = this.creep.pos.findClosestByRange(hostiles) as Creep | null;
+      const target = this.findClosestHostile();
       if (!target) return ActionStatus.NO_TARGET;
 
       const range = this.creep.pos.getRangeTo(target);
       if (range < 3) return this.stayAwayFrom(target, 3);
-      if (range <= 3) {
-        const res = this.creep.rangedAttack(target);
-        if (res === OK) return ActionStatus.ATTACKING;
-        return ActionStatus.ERROR;
-      }
-      return this.moveTo(target);
+      if (range <= 3) return this.rangedAttackHostile(target);
+      return ActionStatus.NOT_IN_RANGE;
     }
 
     /**
-     * Heal the creep if damaged.
-     * @returns `HEALING` when healed, `HEALTHY` if no damage.
+     * Лечит себя при наличии урона.
+     * @returns `HEALING`, если лечение выполнено, или `HEALTHY`, если урона нет.
      */
     healSelfIfNeeded(): ActionStatus {
       if (this.creep.hits >= this.creep.hitsMax) return ActionStatus.HEALTHY;
@@ -91,8 +77,8 @@ export function CombatMixin<
     }
 
     /**
-     * Check if the room contains any hostile creeps.
-     * @returns `true` when hostiles are present.
+     * Проверяет, есть ли в комнате враждебные крипы.
+     * @returns `true`, если враги обнаружены.
      */
     hasHostilesInRoom(): boolean {
       const room = this.creep.room;
@@ -101,8 +87,8 @@ export function CombatMixin<
     }
 
     /**
-     * Move back toward base/spawn when hostiles are nearby.
-     * @returns Movement status or `NO_TARGET` if room/spawn is missing.
+     * Отступает к базе/спауну при появлении врагов.
+     * @returns Статус движения или `NO_TARGET`, если отсутствуют данные о комнате или спауне.
      */
     fleeToBase(): ActionStatus {
       const room = this.creep.room;

@@ -38,6 +38,7 @@ export function setupScreepsGlobals(): void {
     FIND_STRUCTURES: 4,
     FIND_HOSTILE_CREEPS: 5,
     FIND_MY_CREEPS: 6,
+    FIND_DROPPED_RESOURCES: 7,
     LOOK_CONSTRUCTION_SITES: 'constructionSites',
   });
 
